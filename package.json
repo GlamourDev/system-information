@@ -20,8 +20,8 @@
     "build": "npm run check && npm run build:js && npm run build:css",
     "pretest": "npm run build && node scripts/build-tests.mjs",
     "smoke:hardware": "node scripts/check-hardware.mjs",
-    "package:dir": "npm run build && electron-builder --dir",
-    "package:release": "npm run build && electron-builder --publish never",
+    "package:dir": "npm run build && install-electron && electron-builder --dir",
+    "package:release": "npm run build && install-electron && electron-builder --publish never",
     "lint": "oxlint --deny-warnings .",
     "lint:fix": "npm run lint -- --fix"
   },
