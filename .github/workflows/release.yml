@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, macos-15-intel, windows-latest, ubuntu-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run smoke:hardware
+      - run: npm run package:release
+      - name: Create checksums
+        run: |
+          node --input-type=module <<'JS'
+          import assert from "node:assert/strict";
+          import { createHash } from "node:crypto";
+          import { readFile, readdir, writeFile } from "node:fs/promises";
+          const archives = (await readdir("release")).filter(name => /\.(zip|tar\.gz)$/.test(name));
+          assert.equal(archives.length, 1);
+          for (const name of archives) {
+            const hash = createHash("sha256").update(await readFile(`release/${name}`)).digest("hex");
+            await writeFile(`release/${name}.sha256`, `${hash}  ${name}\n`);
+          }
+          JS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}
+          if-no-files-found: error
+          path: |
+            release/*.zip
+            release/*.tar.gz
+            release/*.sha256
+
+  publish:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - name: Publish downloads
+        working-directory: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          sha256sum --check *.sha256
+          cat *.sha256 > SHA256SUMS
+          cat > "$RUNNER_TEMP/release-notes.md" <<'EOF'
+          Hardware information and live sensor monitoring for macOS, Windows, and Linux.
+
+          Download the archive for your operating system and CPU architecture, then extract it to run the app. Checksums are included in SHA256SUMS.
+
+          macOS builds are ad-hoc signed and are not notarized. Windows and Linux downloads contain the unpacked app.
+          EOF
+          gh release create "$GITHUB_REF_NAME" *.zip *.tar.gz SHA256SUMS --verify-tag --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/release-notes.md"

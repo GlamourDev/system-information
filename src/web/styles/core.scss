@@ -1,0 +1,38 @@
+@use "base";
+@use "layout";
+@use "components";
+
+$compact-breakpoint: 1000px;
+
+@media (max-width: $compact-breakpoint) {
+  .sidebar {
+    width: 166px;
+  }
+
+  .toolbar {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .workspace__content {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .sensor-table__heading,
+  .sensor-table__cell {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .details-grid {
+    gap: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

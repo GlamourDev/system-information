@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'"
+    />
+    <title>System Information</title>
+    <link rel="icon" href="../../assets/icons/app.png" />
+    <link rel="stylesheet" href="../css/core.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body class="app">
+    <header class="titlebar">
+      <img
+        class="titlebar__logo"
+        src="../../assets/icons/logo.png"
+        width="22"
+        height="22"
+        alt=""
+      /><span class="titlebar__title" id="app-name">System Information</span>
+    </header>
+    <div class="workspace">
+      <aside class="sidebar">
+        <div class="device">
+          <div class="device__heading">
+            <span class="device__icon" id="machine-icon"></span
+            ><strong class="device__name" id="machine-name">This computer</strong>
+          </div>
+          <span class="device__detail" id="machine-detail">Reading hardware…</span>
+        </div>
+        <nav class="navigation" id="navigation" aria-label="Hardware sections"></nav>
+        <div class="sidebar__footer">
+          <span class="sidebar__platform" id="platform-label">Connecting</span>
+        </div>
+      </aside>
+      <main class="workspace__main">
+        <div class="toolbar">
+          <div>
+            <h1 class="toolbar__title" id="section-title">Overview</h1>
+          </div>
+          <div class="toolbar__actions">
+            <button
+              id="copy"
+              class="icon-button"
+              title="Copy system report"
+              aria-label="Copy system report"
+            ></button>
+          </div>
+        </div>
+        <div class="workspace__content" id="content">
+          <div class="loading" role="status">Reading hardware…</div>
+        </div>
+        <footer class="statusbar">
+          <div class="sampling-status">
+            <span id="sample-state">Reading…</span><span id="updated">—</span>
+          </div>
+          <div class="sampling-controls">
+            <label for="interval">Update</label
+            ><select
+              class="sampling-controls__interval"
+              id="interval"
+              aria-label="Sampling interval"
+            >
+              <option value="1000">1 s</option>
+              <option value="2000" selected>2 s</option>
+              <option value="5000">5 s</option></select
+            ><button
+              class="sampling-controls__toggle"
+              id="pause"
+              title="Pause sampling"
+              aria-label="Pause sampling"
+            ></button>
+          </div>
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>

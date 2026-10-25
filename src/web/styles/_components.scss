@@ -1,0 +1,368 @@
+.device {
+  padding: 0 10px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &__heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__icon {
+    flex-shrink: 0;
+    color: var(--device-icon);
+  }
+
+  &__name {
+    font-size: 13px;
+    font-weight: 550;
+    line-height: 1.4;
+  }
+
+  &__detail {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+}
+
+.sampling-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px;
+  font-size: 11px;
+  background: transparent;
+  color: var(--control-text);
+  border-radius: 4px;
+
+  &:hover {
+    background: var(--control-hover);
+    color: var(--control-hover-text);
+  }
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 20px 0 8px;
+  gap: 20px;
+
+  &:first-child {
+    margin-top: 2px;
+  }
+
+  &__title {
+    font-size: 12px;
+    font-weight: 550;
+    margin: 0;
+    color: var(--heading-text);
+  }
+
+  &__detail {
+    font: 9px var(--mono);
+    color: var(--faint);
+  }
+}
+
+.charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  margin: 0 0 20px;
+}
+
+.chart {
+  min-width: 0;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--chart-label);
+    margin-bottom: 10px;
+  }
+
+  &__value {
+    font: 10px var(--mono);
+    color: var(--accent);
+    font-weight: 400;
+  }
+
+  &__plot {
+    width: 100%;
+    height: 84px;
+    overflow: visible;
+  }
+
+  &__grid {
+    stroke: var(--chart-grid);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  &__line {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+    stroke-linejoin: round;
+  }
+
+  &__fill {
+    fill: var(--chart-fill);
+  }
+
+  &__dot {
+    fill: var(--accent);
+  }
+
+  &__axis {
+    display: flex;
+    justify-content: space-between;
+    color: var(--faint);
+    font: 8px var(--mono);
+    margin-top: 7px;
+  }
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.hardware-table {
+  border-top: 1px solid var(--line);
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+
+  &__row {
+    border-bottom: 1px solid var(--table-line);
+  }
+
+  &__label {
+    padding: 8px 0;
+    text-align: left;
+    line-height: 1.4;
+    vertical-align: top;
+    width: 43%;
+    font-weight: 400;
+    color: var(--muted);
+    padding-right: 12px;
+  }
+
+  &__value {
+    padding: 8px 0;
+    text-align: left;
+    line-height: 1.4;
+    vertical-align: top;
+    color: var(--table-value);
+    overflow-wrap: anywhere;
+  }
+}
+
+.help-text {
+  font-size: 10px;
+  color: var(--faint);
+  line-height: 1.6;
+  margin: 18px 0 0;
+}
+
+.sensor-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  table-layout: fixed;
+
+  &__head {
+    position: sticky;
+    top: 0;
+    background: var(--sensor-header);
+    z-index: 1;
+  }
+
+  &__heading {
+    font-size: 9px;
+    color: var(--sensor-heading);
+    font-weight: 400;
+    text-align: right;
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  &__heading:first-child {
+    text-align: left;
+    width: 36%;
+    padding-left: 12px;
+  }
+
+  &__cell {
+    padding: 8px 10px;
+    text-align: right;
+    font: 10px var(--mono);
+    color: var(--sensor-value);
+    border-bottom: 1px solid var(--sensor-line);
+    white-space: nowrap;
+  }
+
+  &__cell:first-child {
+    text-align: left;
+    font:
+      11px -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+    color: var(--sensor-label);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__cell--current {
+    color: var(--sensor-current);
+  }
+
+  &__row:hover {
+    background: var(--sensor-hover);
+  }
+
+  &__group-label {
+    padding: 12px 10px 8px;
+    text-align: left;
+    background: var(--sensor-group);
+    font-size: 10px;
+    font-weight: 550;
+    color: var(--sensor-group-text);
+    border-bottom: 1px solid var(--line);
+  }
+
+  &__group:first-child .sensor-table__group-label {
+    padding-top: 12px;
+  }
+
+  &__cell--unavailable {
+    color: var(--sensor-unavailable) !important;
+  }
+
+  &__help {
+    margin: 18px 0;
+    font-size: 10px;
+    color: var(--faint);
+    line-height: 1.65;
+  }
+}
+
+.volume {
+  padding: 17px 0;
+  border-bottom: 1px solid var(--line);
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 13px;
+    font-size: 11px;
+  }
+
+  &__name {
+    font-weight: 500;
+  }
+
+  &__capacity {
+    font: 10px var(--mono);
+    color: var(--muted);
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: space-between;
+    color: var(--faint);
+    font: 9px var(--mono);
+    margin-top: 9px;
+  }
+}
+
+.capacity-bar {
+  width: 100%;
+  height: 4px;
+  border-radius: 1px;
+
+  &--compact {
+    width: 100%;
+    height: 3px;
+  }
+}
+
+.processor-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 15px 0;
+}
+
+.processor-core {
+  padding: 12px;
+  background: var(--core-background);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  &__value {
+    font: 10px var(--mono);
+    color: var(--core-value);
+  }
+}
+
+.empty-state {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.loading {
+  padding: 24px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.sampling-controls {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  &__interval {
+    border: 0;
+    background: transparent;
+    font-size: 9px;
+    color: var(--interval-text);
+    outline: none;
+    cursor: pointer;
+  }
+
+  &__toggle {
+    background: transparent;
+    color: var(--toggle-text);
+    padding: 5px;
+    margin-left: 7px;
+  }
+}
