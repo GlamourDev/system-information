@@ -72,18 +72,26 @@ test('packaged macOS and Windows always resolve the bundled tool and database', 
 test('bundled collector ignores system SMART data and passes the bundled database', async () => {
   const fs = require('node:fs');
   const vm = require('node:vm');
-  let invocation;
-  const module = { exports: {} };
-  vm.runInNewContext(fs.readFileSync(require.resolve('../.test-build/storageHealth.js'), 'utf8'), {
-    module, exports: module.exports, __dirname: '/app/resources/app.asar/dist',
-    process: { platform: 'darwin', arch: 'arm64', resourcesPath: '/app/resources', env: {} },
-    require: name => name === 'node:child_process' ? { execFile: (file, args, options, callback) => {
-      invocation = { file, args };
-      callback(null, JSON.stringify({ power_on_time: { hours: 10 } }));
-    } } : require(name),
-  });
-  const health = await module.exports.readStorageHealth('disk0', { power_on_time: { hours: 999 } });
-  assert.equal(health.metrics[0].value, 10);
-  assert.equal(invocation.file, '/app/resources/smartmontools/smartctl');
-  assert.equal(invocation.args.includes('/app/resources/smartmontools/drivedb.h'), true);
+  const path = require('node:path');
+  // Exercise both path formats on every runner, including macOS/Linux CI.
+  for (const paths of [path.posix, path.win32]) {
+    for (const platform of ['darwin', 'win32']) {
+      const resources = paths.resolve('/app/resources');
+      let invocation;
+      const module = { exports: {} };
+      vm.runInNewContext(fs.readFileSync(require.resolve('../.test-build/storageHealth.js'), 'utf8'), {
+        module, exports: module.exports, __dirname: paths.join(resources, 'app.asar', 'dist'),
+        process: { platform, arch: platform === 'win32' ? 'x64' : 'arm64', resourcesPath: resources, env: {} },
+        require: name => name === 'node:path' ? paths : name === 'node:child_process' ? { execFile: (file, args, options, callback) => {
+          invocation = { file, args };
+          callback(null, JSON.stringify({ power_on_time: { hours: 10 } }));
+        } } : require(name),
+      });
+      const device = platform === 'win32' ? String.raw`\\.\PhysicalDrive0` : 'disk0';
+      const health = await module.exports.readStorageHealth(device, { power_on_time: { hours: 999 } });
+      assert.equal(health.metrics[0].value, 10);
+      assert.equal(invocation.file, paths.join(resources, 'smartmontools', platform === 'win32' ? 'smartctl.exe' : 'smartctl'));
+      assert.equal(invocation.args[invocation.args.indexOf('-B') + 1], paths.join(resources, 'smartmontools', 'drivedb.h'));
+    }
+  }
 });

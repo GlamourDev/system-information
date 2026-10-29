@@ -88,6 +88,34 @@
   }
 }
 
+// Windows Acrylic can reveal a bright or busy desktop more strongly than macOS
+// vibrancy. Keep a dense tint behind the content so text has a stable surface.
+.app--win32 {
+  --app-background: rgb(23 27 32 / 92%);
+  --main-background: rgb(21 26 31 / 50%);
+  --sidebar-background: rgb(14 18 23 / 60%);
+  --faint: #929da7;
+  --sensor-unavailable: #929da7;
+}
+
+@media (prefers-color-scheme: light) {
+  .app--win32 {
+    --app-background: rgb(244 246 248 / 94%);
+    --main-background: rgb(255 255 255 / 50%);
+    --sidebar-background: rgb(226 233 238 / 60%);
+    --faint: #526370;
+    --sensor-unavailable: #526370;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .app--win32 { --app-background: #171b20; }
+
+  @media (prefers-color-scheme: light) {
+    .app--win32 { --app-background: #f4f6f8; }
+  }
+}
+
 * {
   box-sizing: border-box;
 }
