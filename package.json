@@ -1,7 +1,7 @@
 {
   "name": "system-information",
   "productName": "System Information",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "license": "MIT",
   "author": {
     "name": "Henry Lõiv"
@@ -20,10 +20,13 @@
     "build": "npm run check && npm run build:js && npm run build:css",
     "pretest": "npm run build && node scripts/build-tests.mjs",
     "smoke:hardware": "node scripts/check-hardware.mjs",
-    "package:dir": "npm run build && install-electron && electron-builder --dir",
-    "package:release": "npm run build && install-electron && electron-builder --publish never",
+    "package:dir": "npm run build && npm run build:windows-helper && npm run build:smartmontools && install-electron && electron-builder --dir",
+    "package:release": "npm run build && npm run build:windows-helper && npm run build:smartmontools && install-electron && electron-builder --publish never",
     "lint": "oxlint --deny-warnings .",
-    "lint:fix": "npm run lint -- --fix"
+    "lint:fix": "npm run lint -- --fix",
+    "rebuild:native": "electron-builder install-app-deps",
+    "build:windows-helper": "node scripts/build-windows-helper.mjs",
+    "build:smartmontools": "node scripts/build-smartmontools.mjs"
   },
   "dependencies": {
     "systeminformation": "5.33.16"
@@ -64,12 +67,37 @@
       "target": [
         "zip"
       ],
-      "notarize": false
+      "notarize": false,
+      "extraResources": [
+        {
+          "from": "native/smartmontools/publish/darwin-${arch}",
+          "to": "smartmontools",
+          "filter": [
+            "**/*"
+          ]
+        }
+      ]
     },
     "win": {
       "icon": "assets/icons/app.ico",
       "target": [
         "zip"
+      ],
+      "extraResources": [
+        {
+          "from": "native/windows/publish/${arch}",
+          "to": "sensors",
+          "filter": [
+            "**/*"
+          ]
+        },
+        {
+          "from": "native/smartmontools/publish/win32-${arch}",
+          "to": "smartmontools",
+          "filter": [
+            "**/*"
+          ]
+        }
       ]
     },
     "linux": {
@@ -88,6 +116,17 @@
         "from": "node_modules/electron/dist/LICENSES.chromium.html",
         "to": "LICENSES.chromium.html"
       }
+    ],
+    "asarUnpack": [
+      "node_modules/**/*.node"
     ]
+  },
+  "optionalDependencies": {
+    "macos-temperature-sensor": "2.1.1",
+    "osx-temperature-sensor": "1.0.8"
+  },
+  "allowScripts": {
+    "macos-temperature-sensor@2.1.1": true,
+    "osx-temperature-sensor@1.0.8": true
   }
 }

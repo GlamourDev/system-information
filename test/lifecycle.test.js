@@ -8,6 +8,7 @@ const vm = require("node:vm");
 async function boot({
   platform = "darwin",
   trayAvailable = true,
+  installerValid = true,
   dark = true,
   release = platform === "win32" ? "10.0.26100" : "25.0.0",
 } = {}) {
@@ -49,6 +50,8 @@ async function boot({
   let trayActions;
   let trayDestroyed = false;
   let samples = 0;
+  let sensorStops = 0;
+  const installers = [];
   let nextTimer = 0;
 
   class Window extends EventEmitter {
@@ -166,12 +169,16 @@ async function boot({
   };
   const windowState = require("../dist/windowUtils.js");
   const mocks = {
-    electron,
+    electron: { ...electron, shell: { openPath: async (file) => { installers.push(file); return ""; } } },
+    "node:fs/promises": { readFile: async () => Buffer.from("installer") },
+    "node:crypto": { createHash: () => ({ update: () => ({ digest: () => installerValid ? "a3a46226c5e2824f4cdd42be0eecbabfc672c86f7889710f5ab1e6ad385b47a0" : "wrong" }) }) },
+    "./sensorProviders.js": { windowsSensorDirectory: () => "/test/sensors" },
     "node:path": path,
     "node:os": { release: () => release },
     "./platform.js": require("../dist/platform.js"),
     "./appInfo.js": require("../dist/appInfo.js"),
     "./machineInfo.js": {
+      stopSensors: () => { sensorStops++; },
       inventory: async () => ({ cpu: { brand: "Test CPU" }, fsSize: [] }),
       sample: async () => ({
         at: ++samples,
@@ -223,6 +230,8 @@ async function boot({
   await new Promise((resolve) => setImmediate(resolve));
   return {
     app,
+    installers,
+    get sensorStops() { return sensorStops; },
     nativeTheme,
     applicationMenu,
     aboutOptions,
@@ -438,4 +447,24 @@ test("macOS leaves transparent vibrancy under system control on theme changes", 
   assert.equal(fixture.window.backgroundColor, "#00000000");
   assert.equal(fixture.window.backgroundUpdates.length, 0);
   assert.equal(fixture.window.overlayUpdates.length, 0);
+});
+
+
+test("Windows sensor driver setup only launches on explicit request and verifies its hash", async () => {
+  const fixture = await boot({ platform: "win32" });
+  assert.equal(fixture.installers.length, 0);
+  await fixture.handlers.get("hardware:setup-sensors")();
+  assert.equal(fixture.installers.length, 1);
+  assert.match(fixture.installers[0], /PawnIO_setup\.exe$/);
+  const corrupt = await boot({ platform: "win32", installerValid: false });
+  await assert.rejects(corrupt.handlers.get("hardware:setup-sensors")(), /verification failed/);
+  assert.equal(corrupt.installers.length, 0);
+});
+
+test("retry and quitting release the persistent sensor helper", async () => {
+  const fixture = await boot();
+  await fixture.handlers.get("hardware:retry-sensors")();
+  assert.equal(fixture.sensorStops, 1);
+  fixture.app.emit("before-quit");
+  assert.equal(fixture.sensorStops, 2);
 });

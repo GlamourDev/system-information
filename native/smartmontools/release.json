@@ -1,0 +1,13 @@
+{
+  "version": "7.5",
+  "source": {
+    "name": "smartmontools-7.5.tar.gz",
+    "url": "https://github.com/smartmontools/smartmontools/releases/download/RELEASE_7_5/smartmontools-7.5.tar.gz",
+    "sha256": "690b83ca331378da9ea0d9d61008c4b22dde391387b9bbad7f29387f2595f76e"
+  },
+  "windows": {
+    "name": "smartmontools-7.5.win32-setup.exe",
+    "url": "https://github.com/smartmontools/smartmontools/releases/download/RELEASE_7_5/smartmontools-7.5.win32-setup.exe",
+    "sha256": "896337fcc253220614cf8cdbd5cf2321c5aa326a37a04160a672a281e6104c70"
+  }
+}

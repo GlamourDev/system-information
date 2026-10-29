@@ -366,3 +366,114 @@
     margin-left: 7px;
   }
 }
+
+.sensor-table__reason {
+  display: block;
+  max-width: 32rem;
+  white-space: normal;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+  font-weight: normal;
+  opacity: 0.75;
+}
+
+.sensor-status {
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.sensor-status button, .sensor-status input {
+  padding: 6px 10px;
+  margin: 4px 6px 0 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: inherit;
+  background: var(--sensor-header);
+}
+.sensor-status input { width: 5rem; }
+.sensor-status button:disabled { opacity: 0.6; }
+.sensor-table__cell svg { max-width: 100%; vertical-align: middle; }
+
+
+.thermal-overview h2, .thermal-overview h3 {
+  display: flex; align-items: center; gap: 7px;
+  margin: 0 0 10px; font-size: 12px; font-weight: 500;
+}
+.thermal-overview h3 { margin-top: 20px; }
+.thermal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+.thermal-grid--cores { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+.thermal-tile {
+  display: grid; grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center; gap: 10px; padding: 12px;
+  border: 1px solid var(--line); border-radius: 6px;
+}
+.thermal-tile__icon { display: flex; opacity: 0.65; }
+.thermal-tile__name { font-size: 12px; overflow-wrap: anywhere; }
+.thermal-tile > strong { font-size: 16px; font-weight: 500; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.thermal-tile__reason { grid-column: 2 / -1; font-size: 10px; line-height: 1.5; opacity: 0.75; }
+.thermal-tile__reason > summary { cursor: pointer; }
+.sensor-disclosure { margin-top: 12px; border-top: 1px solid var(--line); }
+.sensor-disclosure > summary { padding: 12px 0; font-size: 12px; cursor: pointer; }
+.sensor-disclosure > summary svg { display: inline-block; vertical-align: middle; margin: 0 5px 2px 0; }
+.sensor-disclosure--advanced { margin-top: 20px; }
+.sensor-disclosure--advanced > .sensor-disclosure { margin-left: 12px; }
+
+.thermal-tile__icon[data-fan-id] { transform-origin: center; }
+
+.temperature-value--cool { color: #78d5ae; }
+.temperature-value--warm { color: #edcc77; }
+.temperature-value--hot { color: #ffab70; }
+.temperature-value--very-hot { color: #ff8585; }
+.temperature-value { transition: color 200ms ease; }
+.temperature-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: -2px 0 12px; font-size: 10px; }
+@media (prefers-color-scheme: light) {
+  .temperature-value--cool { color: #146749; }
+  .temperature-value--warm { color: #805800; }
+  .temperature-value--hot { color: #a3440a; }
+  .temperature-value--very-hot { color: #b32532; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .temperature-value { transition: none; }
+}
+
+
+.page-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 14px;
+}
+
+.button,
+.sensor-status .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 6px 10px;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--sensor-header);
+  color: var(--control-text);
+  font: inherit;
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+  cursor: pointer;
+
+  svg { flex-shrink: 0; }
+  &:hover:not(:disabled) {
+    background: var(--control-hover);
+    color: var(--control-hover-text);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  &:disabled { cursor: wait; opacity: 0.6; }
+}

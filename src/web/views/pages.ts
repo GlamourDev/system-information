@@ -6,6 +6,8 @@ import { renderGraphics } from "./graphics.js";
 import { renderStorage } from "./storage.js";
 import { renderNetwork } from "./network.js";
 
+import { renderHardware } from "./hardware.js";
+
 export const pages = [
   { id: "overview", title: "Overview", render: renderOverview },
   { id: "sensors", title: "Sensors", render: renderSensors },
@@ -13,6 +15,7 @@ export const pages = [
   { id: "memory", title: "Memory", render: renderMemory },
   { id: "graphics", title: "Graphics", render: renderGraphics },
   { id: "storage", title: "Storage", render: renderStorage },
+  { id: "hardware", title: "Hardware", render: renderHardware },
   { id: "network", title: "Network", render: renderNetwork },
 ] as const;
 

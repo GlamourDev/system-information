@@ -1,7 +1,7 @@
 import type { HardwareInventory, HardwareSample, MonitorSettings } from "../../types.js";
 import { isFiniteNumber, nonnegative } from "../lib/format.js";
 import { getMemoryPercent, getNetworkRate, getSensorReadings } from "./sensors.js";
-import type { HistoryPoint, MonitorView, SensorReading, SensorStatistics } from "./types.js";
+import type { HistoryPoint, MonitorView, SensorReading, SensorStatistics, SensorHistoryPoint } from "./types.js";
 
 const HISTORY_WINDOW_MS = 120_000;
 
@@ -11,6 +11,8 @@ export class MonitorModel {
   private sensors: SensorReading[] = [];
   private statistics = new Map<string, SensorStatistics>();
   private history: HistoryPoint[] = [];
+  private sensorHistory: SensorHistoryPoint[] = [];
+  temperatureAlert: number | null = null;
   settings: MonitorSettings = { paused: false, interval: 2000 };
 
   setHardware(hardware: HardwareInventory): void {
@@ -27,6 +29,8 @@ export class MonitorModel {
 
     this.sample = sample;
     this.sensors = getSensorReadings(sample);
+    this.sensorHistory.push({ at: sample.at, readings: this.sensors });
+    this.sensorHistory = this.sensorHistory.filter((point) => point.at >= sample.at - HISTORY_WINDOW_MS).slice(-121);
     for (const sensor of this.sensors) {
       if (!isFiniteNumber(sensor.value)) continue;
       const previous = this.statistics.get(sensor.id);
@@ -61,6 +65,8 @@ export class MonitorModel {
       sensors: this.sensors,
       statistics: this.statistics,
       history: this.history,
+      sensorHistory: this.sensorHistory,
+      temperatureAlert: this.temperatureAlert,
     };
   }
 }

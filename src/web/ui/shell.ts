@@ -1,3 +1,4 @@
+import { createFanAnimation } from "./fanAnimation.js";
 import type { HardwareAPI, HardwareInventory } from "../../types.js";
 import { renderIcon } from "../components/icons.js";
 import { escapeHtml, getElement } from "../lib/dom.js";
@@ -5,6 +6,7 @@ import { formatBytes } from "../lib/format.js";
 import type { Page } from "../views/pages.js";
 
 export function createShell(api: HardwareAPI) {
+  const fanAnimation = createFanAnimation();
   const title = getElement("#section-title");
   const content = getElement("#content");
   const status = getElement("#sample-state");
@@ -30,7 +32,12 @@ export function createShell(api: HardwareAPI) {
     showPage(page: Page, markup: string) {
       const scrollPosition = content.scrollTop;
       title.textContent = page.title;
+      const expanded = new Set([...content.querySelectorAll<HTMLDetailsElement>("details[data-sensor-disclosure][open]")].map((element) => element.dataset.sensorDisclosure));
       content.innerHTML = markup;
+      for (const element of content.querySelectorAll<HTMLDetailsElement>("details[data-sensor-disclosure]")) {
+        element.open = expanded.has(element.dataset.sensorDisclosure);
+      }
+      fanAnimation.update(content);
       content.scrollTop = scrollPosition;
     },
     resetScroll() {
@@ -39,6 +46,7 @@ export function createShell(api: HardwareAPI) {
     showError(error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       content.innerHTML = `<div class="empty-state">Could not read hardware information.<br>${escapeHtml(message)}</div>`;
+      fanAnimation.update(content);
       status.textContent = "Connection failed";
     },
   };

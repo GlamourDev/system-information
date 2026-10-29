@@ -4,3 +4,9 @@ dist/
 *.log
 release/
 .test-build/
+native/windows/bin/
+native/windows/obj/
+native/windows/publish/
+native/smartmontools/cache/
+native/smartmontools/work/
+native/smartmontools/publish/

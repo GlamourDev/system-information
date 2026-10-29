@@ -35,7 +35,13 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      - uses: actions/setup-dotnet@v4
+        if: runner.os == 'Windows'
+        with:
+          dotnet-version: '10.0.x'
       - run: npm ci
+      - run: npm run build:smartmontools
+      - run: npm run build:windows-helper
       - name: Verify version tag
         run: |
           node --input-type=module <<'JS'
@@ -47,9 +53,12 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run smoke:hardware
+      - run: node scripts/check-windows-helper.mjs
+      - run: node scripts/check-smartmontools.mjs
       - name: Install Electron runtime
         run: npx --no-install install-electron
       - run: npm run package:release
+      - run: node scripts/check-smartmontools.mjs --packaged
       - name: Create checksums
         run: |
           node --input-type=module <<'JS'

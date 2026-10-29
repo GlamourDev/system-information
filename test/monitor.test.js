@@ -183,3 +183,21 @@ test("active memory falls back to total minus available, then used memory", () =
   assert.equal(getMemoryPercent({ total: NaN, active: 10 }), null);
   assert.equal(getMemoryPercent(undefined), null);
 });
+
+test("sensor histories retain missing readings and expire after two minutes", () => {
+  const model = createModel();
+  model.acceptSample(sample(1000, { cpuTemperature: { main: 50 } }));
+  model.acceptSample(sample(2000));
+  assert.equal(model.view.sensorHistory[0].readings.find((r) => r.id === "temperature").value, 50);
+  assert.equal(model.view.sensorHistory[1].readings.find((r) => r.id === "temperature").value, null);
+  model.acceptSample(sample(123000));
+  assert.equal(model.view.sensorHistory.length, 1);
+});
+
+test("sensor CSV preserves missing values, quotes labels and neutralizes spreadsheet formulas", () => {
+  const { createSensorCsv } = require("../.test-build/report.js");
+  const csv = createSensorCsv({ sensorHistory: [{ at: 1000, readings: [{ id: "x", group: "Test", name: '=HYPERLINK("bad")', value: null, unit: "°C", reason: "Unavailable" }] }] });
+  assert.match(csv, /1970-01-01T00:00:01.000Z/);
+  assert.ok(csv.includes('"\'=HYPERLINK(""bad"")"'));
+  assert.ok(csv.includes(',"","°C","Unavailable"'));
+});

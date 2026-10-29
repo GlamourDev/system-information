@@ -17,7 +17,7 @@ export function renderTable(rows: readonly TableRow[]): string {
       ([label, value]) => `
     <tr class="hardware-table__row">
       <th class="hardware-table__label" scope="row">${escapeHtml(label)}</th>
-      <td class="hardware-table__value">${escapeHtml(value === "" || value == null ? "—" : value)}</td>
+      <td class="hardware-table__value">${value === "" || value == null ? '<span title="Not reported by this device or operating system">— <small>Not reported</small></span>' : escapeHtml(value)}</td>
     </tr>
   `,
     )

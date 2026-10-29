@@ -1,3 +1,5 @@
+import { readStorageHealth } from "./storageHealth.js";
+import { extendedSensors, failureReason, cpuTemperatureFromSensors } from "./sensorProviders.js";
 import * as si from "systeminformation";
 import type { Systeminformation as SI } from "systeminformation";
 import { arch, totalmem, uptime as systemUptime } from "node:os";
@@ -9,8 +11,12 @@ import type {
 } from "./types.js";
 
 interface ProbeResults {
+  bios: SI.BiosData;
+  usb: SI.UsbData[];
+  audio: SI.AudioData[];
   system: SI.SystemData;
   cpu: SI.CpuData;
+  cpuCurrentSpeed: SI.CpuCurrentSpeedData;
   osInfo: SI.OsData;
   baseboard: SI.BaseboardData;
   memLayout: SI.MemLayoutData[];
@@ -26,24 +32,33 @@ interface ProbeResults {
   battery: SI.BatteryData;
 }
 
-function createProbe<T>(probe: () => Promise<T>) {
+const sensorIssues: Record<string, string> = {};
+
+function createProbe<T>(probe: () => Promise<T>, name: string) {
   let pending: Promise<T | null> | null = null;
   return async (timeout = 6000): Promise<T | null> => {
     if (!pending) {
       pending = Promise.resolve()
         .then(probe)
-        .catch(() => null);
+        .catch((error: unknown) => {
+          sensorIssues[name] = failureReason(error);
+          return null;
+        });
       void pending.finally(() => {
         pending = null;
       });
     }
+    delete sensorIssues[name];
     const task = pending;
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       return await Promise.race([
         task,
         new Promise<null>((resolve) => {
-          timer = setTimeout(() => resolve(null), timeout);
+          timer = setTimeout(() => {
+            sensorIssues[name] = "Sensor query timed out. It will be retried on the next refresh.";
+            resolve(null);
+          }, timeout);
         }),
       ]);
     } finally {
@@ -55,26 +70,31 @@ function createProbe<T>(probe: () => Promise<T>) {
 const probes: {
   [K in keyof ProbeResults]: (timeout?: number) => Promise<ProbeResults[K] | null>;
 } = {
-  system: createProbe(() => si.system()),
-  cpu: createProbe(() => si.cpu()),
-  osInfo: createProbe(() => si.osInfo()),
-  baseboard: createProbe(() => si.baseboard()),
-  memLayout: createProbe(() => si.memLayout()),
-  graphics: createProbe(() => si.graphics()),
-  diskLayout: createProbe(() => si.diskLayout()),
-  fsSize: createProbe(() => si.fsSize()),
-  networkInterfaces: createProbe(() => si.networkInterfaces()),
-  currentLoad: createProbe(() => si.currentLoad()),
-  mem: createProbe(() => si.mem()),
-  cpuTemperature: createProbe(() => si.cpuTemperature()),
-  networkStats: createProbe(() => si.networkStats()),
-  disksIO: createProbe(() => si.disksIO()),
-  battery: createProbe(() => si.battery()),
+  bios: createProbe(() => si.bios(), "bios"),
+  usb: createProbe(() => si.usb(), "usb"),
+  audio: createProbe(() => si.audio(), "audio"),
+  system: createProbe(() => si.system(), "system"),
+  cpu: createProbe(() => si.cpu(), "cpu"),
+  cpuCurrentSpeed: createProbe(() => si.cpuCurrentSpeed(), "cpuCurrentSpeed"),
+  osInfo: createProbe(() => si.osInfo(), "osInfo"),
+  baseboard: createProbe(() => si.baseboard(), "baseboard"),
+  memLayout: createProbe(() => si.memLayout(), "memLayout"),
+  graphics: createProbe(() => si.graphics(), "graphics"),
+  diskLayout: createProbe(() => si.diskLayout(), "diskLayout"),
+  fsSize: createProbe(() => si.fsSize(), "fsSize"),
+  networkInterfaces: createProbe(() => si.networkInterfaces(), "networkInterfaces"),
+  currentLoad: createProbe(() => si.currentLoad(), "currentLoad"),
+  mem: createProbe(() => si.mem(), "mem"),
+  cpuTemperature: createProbe(() => si.cpuTemperature(), "cpuTemperature"),
+  networkStats: createProbe(() => si.networkStats(), "networkStats"),
+  disksIO: createProbe(() => si.disksIO(), "disksIO"),
+  battery: createProbe(() => si.battery(), "battery"),
 };
 
 const privateFields: readonly PrivateHardwareField[] = [
   "serial",
   "serialNum",
+  "serialNumber",
   "uuid",
   "assetTag",
   "hostname",
@@ -108,6 +128,9 @@ function read<K extends keyof ProbeResults>(
 
 export async function inventory(): Promise<HardwareInventory> {
   const [
+    bios,
+    usb,
+    audio,
     system,
     cpu,
     osInfo,
@@ -118,6 +141,9 @@ export async function inventory(): Promise<HardwareInventory> {
     fsSize,
     networkInterfaces,
   ] = await Promise.all([
+    read("bios", 12000),
+    read("usb", 12000),
+    read("audio", 12000),
     read("system", 12000),
     read("cpu", 12000),
     read("osInfo", 12000),
@@ -129,13 +155,20 @@ export async function inventory(): Promise<HardwareInventory> {
     read("networkInterfaces", 12000),
   ]);
   return {
+    issues: Object.fromEntries(Object.entries({ bios, usb, audio, system, cpu, osInfo, baseboard, memLayout, graphics, diskLayout, fsSize, networkInterfaces }).filter(([, value]) => value === null || (Array.isArray(value) && !value.length)).map(([key]) => [key, sensorIssues[key] || "The operating system did not expose this hardware information."])),
+    bios: sanitizeNullable(bios),
+    usb: usb?.map(sanitize) ?? null,
+    audio,
     system: sanitizeNullable(system),
     cpu,
     osInfo: sanitizeNullable(osInfo),
     baseboard: sanitizeNullable(baseboard),
     memLayout: memLayout?.map(sanitize) ?? null,
     graphics,
-    diskLayout: diskLayout?.map(sanitize) ?? null,
+    diskLayout: diskLayout ? await Promise.all(diskLayout.map(async (disk) => {
+      const { smartData, ...safe } = sanitize(disk);
+      return { ...safe, health: await readStorageHealth(disk.device, smartData) };
+    })) : null,
     fsSize,
     networkInterfaces,
     platform: process.platform,
@@ -144,22 +177,29 @@ export async function inventory(): Promise<HardwareInventory> {
   };
 }
 
+const readExtended = createProbe(extendedSensors, "extendedSensors");
+
 export async function sample(): Promise<HardwareSample> {
-  const [currentLoad, mem, cpuTemperature, networkStats, disksIO, battery] = await Promise.all([
+  const [currentLoad, mem, cpuTemperature, networkStats, disksIO, battery, extended, cpuCurrentSpeed] = await Promise.all([
     read("currentLoad"),
     read("mem"),
-    read("cpuTemperature"),
+    process.platform === "darwin" || process.platform === "win32" ? Promise.resolve(null) : read("cpuTemperature"),
     read("networkStats"),
     read("disksIO"),
     read("battery"),
+    readExtended(15000),
+    read("cpuCurrentSpeed"),
   ]);
   return {
     currentLoad,
+    cpuCurrentSpeed,
     mem,
-    cpuTemperature,
+    cpuTemperature: cpuTemperatureFromSensors(extended) ?? cpuTemperature,
     networkStats,
     disksIO,
     battery,
+    extendedSensors: extended ?? { readings: [], reason: sensorIssues.extendedSensors || "Sensor provider unavailable." },
+    sensorIssues: { ...sensorIssues },
     at: Date.now(),
     uptime: uptime(),
   };
@@ -168,3 +208,5 @@ export async function sample(): Promise<HardwareSample> {
 export async function volumes(): Promise<SI.FsSizeData[]> {
   return (await read("fsSize")) ?? [];
 }
+
+export { stopSensors } from "./sensorProviders.js";

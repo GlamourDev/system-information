@@ -1,4 +1,7 @@
-import { app, BrowserWindow, ipcMain, nativeTheme, Menu, clipboard, screen } from "electron";
+import { readFile, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { windowsSensorDirectory } from "./sensorProviders.js";
+import { app, BrowserWindow, ipcMain, nativeTheme, Menu, clipboard, screen, shell, dialog } from "electron";
 import path from "node:path";
 import { APP_INFO, APP_ID } from "./appInfo.js";
 import { release } from "node:os";
@@ -46,12 +49,12 @@ function updateTray() {
   tray?.update({ sample: lastSample, paused, interval });
 }
 
-async function tick() {
-  if (sampling || paused || quitting) return;
+async function tick(force = false) {
+  if (sampling || (paused && !force) || quitting) return;
   sampling = true;
   try {
     const sample = await collector.sample();
-    if (paused || quitting) return;
+    if ((paused && !force) || quitting) return;
     lastSample = sample;
     updateTray();
     send("hardware:sample", lastSample);
@@ -297,8 +300,33 @@ app.whenReady().then(() => {
 app.on("second-instance", () => {
   if (app.isReady()) showWindow();
 });
+ipcMain.handle("hardware:save-history", async (_, csv: unknown) => {
+  if (typeof csv !== "string" || csv.length > 10000000) throw new Error("Invalid history export.");
+  const result = await dialog.showSaveDialog({ title: "Save sensor history", defaultPath: "sensor-history.csv", filters: [{ name: "CSV", extensions: ["csv"] }] });
+  if (result.canceled || !result.filePath) return false;
+  await writeFile(result.filePath, csv, "utf8");
+  return true;
+});
+
+ipcMain.handle("hardware:setup-sensors", async () => {
+  if (process.platform !== "win32") throw new Error("Sensor driver setup is only available on Windows.");
+  const installer = path.join(windowsSensorDirectory(), "PawnIO_setup.exe");
+  const binary = await readFile(installer);
+  if (createHash("sha256").update(binary).digest("hex") !== "a3a46226c5e2824f4cdd42be0eecbabfc672c86f7889710f5ab1e6ad385b47a0") throw new Error("Sensor installer verification failed. Reinstall the app.");
+  const error = await shell.openPath(installer);
+  if (error) throw new Error("Could not open sensor setup: " + error);
+});
+
+ipcMain.handle("hardware:retry-sensors", async () => {
+  collector.stopSensors();
+  hardware = await collector.inventory();
+  send("hardware:inventory", hardware);
+  await tick(true);
+});
+
 app.on("before-quit", () => {
   quitting = true;
+  collector.stopSensors?.();
   clearInterval(timer);
   savePlacement();
 });

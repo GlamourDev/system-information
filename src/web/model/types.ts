@@ -1,6 +1,6 @@
 import type { HardwareInventory, HardwareSample } from "../../types.js";
 
-export type SensorUnit = "%" | "°C" | "bytes" | "rate" | "ops/s" | "V" | "W" | "rpm";
+export type SensorUnit = "%" | "°C" | "bytes" | "rate" | "ops/s" | "V" | "W" | "rpm" | "MHz" | "GiB" | "MiB" | "×";
 
 export interface SensorReading {
   id: string;
@@ -8,6 +8,8 @@ export interface SensorReading {
   name: string;
   value: number | null;
   unit: SensorUnit;
+  reason?: string;
+  source?: string;
 }
 
 export interface SensorStatistics {
@@ -31,7 +33,11 @@ export type TableRow = readonly [
   value: string | number | boolean | null | undefined,
 ];
 
+export interface SensorHistoryPoint { at: number; readings: readonly SensorReading[]; }
+
 export interface MonitorView {
+  readonly sensorHistory?: readonly SensorHistoryPoint[];
+  readonly temperatureAlert?: number | null;
   readonly hardware: HardwareInventory;
   readonly sample: HardwareSample | null;
   readonly sensors: readonly SensorReading[];

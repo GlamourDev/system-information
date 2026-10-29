@@ -20,7 +20,15 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      - uses: actions/setup-dotnet@v4
+        if: runner.os == 'Windows'
+        with:
+          dotnet-version: '10.0.x'
       - run: npm ci
+      - run: npm run build:smartmontools
+      - run: npm run build:windows-helper
       - run: npm run lint
       - run: npm test
       - run: npm run smoke:hardware
+      - run: node scripts/check-windows-helper.mjs
+      - run: node scripts/check-smartmontools.mjs

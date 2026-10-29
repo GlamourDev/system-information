@@ -155,5 +155,58 @@ export function getSensorReadings(sample: HardwareSample): SensorReading[] {
     );
   }
 
-  return readings;
+  readings.push({ id: "cpuFrequency", name: "Reported CPU frequency", group: "Processor", value: positive(sample.cpuCurrentSpeed?.avg) === null ? null : sample.cpuCurrentSpeed!.avg * 1000, unit: "MHz", reason: sample.sensorIssues?.cpuCurrentSpeed });
+  const extended = sample.extendedSensors;
+  if (extended?.disk) {
+    readings.find((reading) => reading.id === "read")!.value = extended.disk.read;
+    readings.find((reading) => reading.id === "write")!.value = extended.disk.write;
+    for (const reading of readings.filter((item) => item.id === "read" || item.id === "write")) {
+      reading.source = "Windows PerfDisk";
+      reading.reason = reading.value === null ? extended.disk.reason : undefined;
+    }
+  }
+  if (extended?.disk) {
+    readings.push(
+      { id: "diskReadBytes", name: "Read throughput", group: "Storage", value: extended.disk.readBytes ?? null, unit: "rate", reason: extended.disk.reason },
+      { id: "diskWriteBytes", name: "Write throughput", group: "Storage", value: extended.disk.writeBytes ?? null, unit: "rate", reason: extended.disk.reason },
+    );
+  }
+  for (const [index, value] of (sample.cpuTemperature?.cores ?? []).entries()) {
+    readings.push({ id: `cpuDie${index}`, group: "Thermals", name: `CPU temperature sensor ${index + 1}`, value: positive(value), unit: "°C" });
+  }
+  for (const reading of extended?.readings ?? []) {
+    const index = readings.findIndex((item) => item.id === reading.id);
+    if (index >= 0) readings[index] = { ...reading };
+    else readings.push({ ...reading });
+  }
+  // A CPU package reading is preferred; do not relabel an ACPI thermal zone as a CPU core.
+  const cpuCandidates = readings.filter((reading) => reading.id.startsWith("lhm:") && /cpu|intelcpu|amdcpu/i.test(reading.id) && reading.unit === "°C" && reading.value !== null);
+  const cpu = cpuCandidates.find((reading) => /package|tctl|tdie/i.test(reading.name)) || cpuCandidates[0];
+  if (cpu) Object.assign(readings.find((reading) => reading.id === "temperature")!, { value: cpu.value, source: cpu.source });
+  if (extended) {
+    const expected: SensorReading[] = [
+      { id: "gpuTemperature", group: "Thermals", name: "GPU temperature", value: null, unit: "°C" },
+      { id: "fansUnavailable", group: "Fans", name: "Fan speed", value: null, unit: "rpm" },
+      { id: "powerUnavailable", group: "Power", name: "Hardware power", value: null, unit: "W" },
+      { id: "voltageUnavailable", group: "Power", name: "Hardware voltage", value: null, unit: "V" },
+    ];
+    for (const reading of expected) {
+      const present = reading.id === "gpuTemperature"
+        ? readings.some((item) => item.unit === "°C" && /gpu/i.test(item.id))
+        : readings.some((item) => item.unit === reading.unit && item.id !== "power" && item.id !== "voltage");
+      if (!present) readings.push(reading);
+    }
+  }
+  const issueKeys: Record<string, string> = { cpu: "currentLoad", user: "currentLoad", system: "currentLoad", temperature: "cpuTemperature", memoryUsed: "mem", memoryAvailable: "mem", memoryPercent: "mem", swap: "mem", read: "disksIO", write: "disksIO", download: "networkStats", upload: "networkStats", battery: "battery", voltage: "battery", power: "battery" };
+  for (const reading of readings) {
+    if (reading.value !== null) { reading.reason = undefined; continue; }
+    const thermal = reading.unit === "°C" || reading.unit === "rpm" || reading.id.endsWith("Unavailable");
+    reading.reason ??= sample.sensorIssues?.[issueKeys[reading.id] || ""]
+      || (thermal ? extended?.reason : undefined)
+      || (reading.id === "download" || reading.id === "upload" ? "No active interface has a valid transfer rate yet. The first sample may need a second refresh."
+        : "The operating system or device did not return a valid reading for this sensor.");
+  }
+  // Keep groups together even when several providers contribute readings.
+  const groups = [...new Set(readings.map((reading) => reading.group))];
+  return groups.flatMap((group) => readings.filter((reading) => reading.group === group));
 }

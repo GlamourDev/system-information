@@ -1,3 +1,5 @@
+import type { StorageHealth } from "./storageHealth.js";
+import type { ExtendedSensors } from "./sensorProviders.js";
 import type { Systeminformation as SI } from "systeminformation";
 
 export type SampleInterval = 1000 | 2000 | 5000;
@@ -8,18 +10,22 @@ export interface MonitorSettings {
 }
 
 export type PrivateHardwareField =
-  "serial" | "serialNum" | "uuid" | "assetTag" | "hostname" | "fqdn";
+  "serial" | "serialNumber" | "serialNum" | "uuid" | "assetTag" | "hostname" | "fqdn";
 
 export type PublicHardwareData<T> = Omit<T, PrivateHardwareField>;
 
 export interface HardwareInventory {
+  issues?: Record<string, string>;
   system: PublicHardwareData<SI.SystemData> | null;
+  bios: PublicHardwareData<SI.BiosData> | null;
+  usb: PublicHardwareData<SI.UsbData>[] | null;
+  audio: SI.AudioData[] | null;
   cpu: SI.CpuData | null;
   osInfo: PublicHardwareData<SI.OsData> | null;
   baseboard: PublicHardwareData<SI.BaseboardData> | null;
   memLayout: PublicHardwareData<SI.MemLayoutData>[] | null;
   graphics: SI.GraphicsData | null;
-  diskLayout: PublicHardwareData<SI.DiskLayoutData>[] | null;
+  diskLayout: (Omit<PublicHardwareData<SI.DiskLayoutData>, "smartData"> & { health?: StorageHealth })[] | null;
   fsSize: SI.FsSizeData[] | null;
   networkInterfaces: SI.NetworkInterfacesData[] | null;
   platform: NodeJS.Platform;
@@ -32,12 +38,15 @@ export type BatteryReading = SI.BatteryData & {
 };
 
 export interface HardwareSample {
+  cpuCurrentSpeed?: SI.CpuCurrentSpeedData | null;
   currentLoad: SI.CurrentLoadData | null;
   mem: SI.MemData | null;
   cpuTemperature: SI.CpuTemperatureData | null;
   networkStats: SI.NetworkStatsData[] | null;
   disksIO: SI.DisksIoData | null;
   battery: BatteryReading | null;
+  extendedSensors?: ExtendedSensors;
+  sensorIssues?: Record<string, string>;
   at: number;
   uptime: number | null;
 }
@@ -63,6 +72,9 @@ export interface HardwareAPI {
   bootstrap(): Promise<BootstrapData>;
   pause(value: boolean): Promise<boolean>;
   interval(value: SampleInterval): Promise<SampleInterval>;
+  saveSensorHistory(csv: string): Promise<boolean>;
+  setupSensors(): Promise<void>;
+  retrySensors(): Promise<void>;
   copy(report: string): Promise<void>;
   onSettings(callback: (settings: MonitorSettings) => void): void;
   onSample(callback: (sample: HardwareSample) => void): void;
