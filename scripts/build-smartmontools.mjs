@@ -35,7 +35,9 @@ const source = await download(release.source);
 await rm(work, { recursive: true, force: true });
 await mkdir(work, { recursive: true });
 await mkdir(output, { recursive: true });
-run("tar", ["-xzf", source, "-C", work]);
+// Git Bash's GNU tar interprets "D:" in an absolute archive path as a
+// remote host. Resolve the archive relative to cwd on every build platform.
+run("tar", ["-xzf", path.relative(work, source)], { cwd: work });
 const sourceRoot = path.join(work, `smartmontools-${release.version}`);
 if (platform === "darwin") {
   if (process.platform !== "darwin") throw new Error("macOS smartctl must be built on macOS.");
